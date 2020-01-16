@@ -245,14 +245,15 @@ void ESP32_FTPClient::RemoveDir(const char * dir) {
   GetFTPAnswer();
 }
 
-void ESP32_FTPClient::ContentList(const char * dir, String * list) {
+void ESP32_FTPClient::ContentList(const char * dir, std::vector<std::string> &lista) { //C++ string vectors are way easier to manipulate. Capture by reference so the actual vector gets modified. 
   char _resp[ sizeof(outBuf) ];
   uint16_t _b = 0;
   
   FTPdbgn("Send MLSD");
   if(!isConnected()) return;
-  client.print(F("MLSD"));
-  client.println(F(dir));
+  client.print(F("MLSD "));//A space was missing
+  client.println(F(dir));//Commenting this line would make the server send the element list of the working directory. 
+  
   GetFTPAnswer(_resp);
 
   // Convert char array to string to manipulate and find response size
@@ -268,8 +269,11 @@ void ESP32_FTPClient::ContentList(const char * dir, String * list) {
   {
     if( _b < 128 )
     {
-      list[_b] = dclient.readStringUntil('\n');
-      //FTPdbgn(String(_b) + ":" + list[_b]);
+    if( _b < 128 )
+    {
+      String elemento_lista = dclient.readStringUntil('\r'); //Element lists typically end with a line feed but the raw string ends with a carriage return.
+      String archivo = elemento_lista.substring(elemento_lista.lastIndexOf(';') + 2); //Erase the trailing ';' and ' '
+      lista.push_back(archivo.c_str()); //append to vector.
       _b++;
     }
   }
